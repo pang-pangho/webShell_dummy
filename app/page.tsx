@@ -6,21 +6,27 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
+import Image from 'next/image'; 
 import { Textarea } from "@/components/ui/textarea"
-import { ShoppingCart, Star, Upload, User, Search, Menu, Heart, Gift } from 'lucide-react'
+import { ShoppingCart, Star, Upload, User, Search,  Gift } from 'lucide-react'
+
+interface User {
+  id: number;
+  username: string;
+  email: string;
+}
 
 export default function GameShop() {
   const [uploadResult, setUploadResult] = useState("")
   const [searchResult, setSearchResult] = useState("")
   const [showLogin, setShowLogin] = useState(false)
   const [showRegister, setShowRegister] = useState(false)
-  // --- 추가: 현재 로그인한 사용자 정보를 담을 상태 ---
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   const handleFileUpload = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const formData = new FormData(e.currentTarget)
-    
+
     try {
       const response = await fetch('/api/upload', {
         method: 'POST',
@@ -29,7 +35,8 @@ export default function GameShop() {
       const result = await response.text()
       setUploadResult(result)
     } catch (error) {
-      setUploadResult('업로드 실패: ' + error)
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      setUploadResult('업로드 실패: ' + errorMessage)
     }
   }
 
@@ -37,7 +44,7 @@ export default function GameShop() {
     e.preventDefault()
     const formData = new FormData(e.currentTarget)
     const query = formData.get('search')
-    
+
     try {
       const response = await fetch('/api/search', {
         method: 'POST',
@@ -47,7 +54,8 @@ export default function GameShop() {
       const result = await response.text()
       setSearchResult(result)
     } catch (error) {
-      setSearchResult('검색 실패: ' + error)
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      setSearchResult('검색 실패: ' + errorMessage)
     }
   }
 
@@ -68,27 +76,21 @@ export default function GameShop() {
         body: JSON.stringify(data),
       });
 
-      const responseText = await response.text();
-      let result;
-      try {
-        result = JSON.parse(responseText);
-      } catch {
-        result = { message: responseText };
-      }
+      const result = await response.json();
 
       if (response.ok) {
-        alert(result.message || "회원가입이 완료되었습니다!");
+        alert(result.message);
         setShowRegister(false);
         setShowLogin(true);
       } else {
-        alert("회원가입 실패: " + (result.message || "알 수 없는 오류"));
+        alert("회원가입 실패: " + result.message);
       }
     } catch (error) {
-      alert("회원가입 중 에러가 발생했습니다.");
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      alert("회원가입 중 에러가 발생했습니다: " + errorMessage);
     }
   };
 
-  // --- 추가: 로그인 처리 함수 ---
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -104,20 +106,20 @@ export default function GameShop() {
       const result = await response.json();
 
       if (response.ok) {
-        alert(result.message); // "로그인 성공!" 팝업
-        setCurrentUser(result.user); // 현재 유저 상태 업데이트
-        setShowLogin(false); // 로그인 창 닫기
+        alert(result.message);
+        setCurrentUser(result.user);
+        setShowLogin(false);
       } else {
         alert("로그인 실패: " + result.message);
       }
     } catch (error) {
-      alert("로그인 중 에러가 발생했습니다.");
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      alert("로그인 중 에러가 발생했습니다: " + errorMessage);
     }
   };
 
-  // --- 추가: 로그아웃 처리 함수 ---
   const handleLogout = () => {
-    setCurrentUser(null); // 현재 유저 상태를 null로 만들어 로그아웃 처리
+    setCurrentUser(null);
     alert("로그아웃되었습니다.");
   };
 
@@ -138,27 +140,24 @@ export default function GameShop() {
               <a href="#" className="hover:text-purple-300">이벤트</a>
             </nav>
             <div className="flex items-center space-x-4">
-              {/* --- 수정: 로그인 상태에 따라 UI 변경 --- */}
-              {currentUser ? (
-                // 로그인이 된 경우
-                <div className="flex items-center space-x-3 text-white">
-                  <span>{currentUser.username}님</span>
-                  <Button variant="ghost" size="sm" onClick={handleLogout}>
-                    로그아웃
-                  </Button>
-                </div>
-              ) : (
-                // 로그아웃 상태인 경우
-                <Button variant="ghost" size="sm" className="text-white" onClick={() => setShowLogin(true)}>
-                  <User className="h-4 w-4 mr-2" />
-                  로그인
-                </Button>
-              )}
-              <Button size="sm" className="bg-purple-600 hover:bg-purple-700">
-                <ShoppingCart className="h-4 w-4 mr-2" />
-                장바구니
-              </Button>
-            </div>
+  {currentUser ? (
+    <div className="flex items-center space-x-3 text-white">
+      <span>{currentUser.username}님</span>
+      <Button variant="ghost" size="sm" onClick={handleLogout}>
+        로그아웃
+      </Button>
+    </div>
+  ) : (
+    <Button variant="ghost" size="sm" className="text-white" onClick={() => setShowLogin(true)}>
+      <User className="h-4 w-4 mr-2" />
+      로그인
+    </Button>
+  )}
+  <Button size="sm" className="bg-purple-600 hover:bg-purple-700">
+    <ShoppingCart className="h-4 w-4 mr-2" />
+    장바구니
+  </Button>
+</div>
           </div>
         </div>
       </header>
@@ -207,7 +206,15 @@ export default function GameShop() {
               ].map((game, index) => (
                 <Card key={index} className="bg-white/10 border-white/20 backdrop-blur-sm hover:bg-white/15 transition-all">
                   <CardContent className="p-0">
-                    <img src={game.image || "/placeholder.svg"} alt={game.name} className="w-full h-48 object-cover rounded-t-lg" />
+                  <div className="relative w-full h-48">
+  <Image 
+    src={game.image || "/placeholder.svg"} 
+    alt={game.name}
+    fill
+    style={{ objectFit: 'cover' }}
+    className="rounded-t-lg"
+  />
+</div>
                     <div className="p-4">
                       <h4 className="font-bold text-white mb-2">{game.name}</h4>
                       <div className="flex items-center justify-between mb-3">
